@@ -71,7 +71,8 @@ Write-Host "Registering resource providers...";
 $provider_list = "Microsoft.Synapse", "Microsoft.Sql", "Microsoft.Storage", "Microsoft.Compute", "Microsoft.Databricks"
 foreach ($provider in $provider_list){
     $result = Register-AzResourceProvider -ProviderNamespace $provider
-    Write-Host "$provider : $result"
+    $status = $result.RegistrationState
+    Write-Host "$provider : $status"
 }
 
 # Generate unique random suffix
