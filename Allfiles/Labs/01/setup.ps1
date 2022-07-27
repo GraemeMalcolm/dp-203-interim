@@ -179,16 +179,8 @@ Suspend-AzSynapseSqlPool -WorkspaceName $synapseWorkspace -Name $sqlDatabaseName
 Write-Host "Creating Azure Databricks workspace in $resourceGroupName resource group..."
 $locations = Get-AzLocation | Where-Object {
     $_.Providers -contains "Microsoft.Databricks" -and
+    $_.Providers -contains "Microsoft.Compute" -and
     $_.Location -notmatch $Region
-}
-
-# Remove locations with insufficient quota
-foreach ($location in $locations){
-    $quota = @(Get-AzVMUsage -Location $location).where{$_.name.LocalizedValue -match 'Standard DSv2 Family vCPUs'}
-    if ($quota.limit - $quota.currentvalue -lt 8)
-    {
-        $locations.Remove($location)
-    }
 }
 
 # Try to create an Azure Databricks workspace in one of the remaining locations
@@ -203,9 +195,31 @@ while ($stop -ne 1){
     try {
         write-host "Trying $Region..."
         $attempt = $attempt + 1
-        $dbworkspace = "databricks$suffix$attempt"
-        New-AzDatabricksWorkspace -Name $dbworkspace -ResourceGroupName $resourceGroupName -Location $Region -Sku standard -ErrorAction Stop | Out-Null
-        $stop = 1
+        $quota = @(Get-AzVMUsage -Location $Region).where{$_.name.LocalizedValue -match 'Standard DSv2 Family vCPUs'}
+        $cores =  $quota.currentvalue
+        $maxcores = $quota.limit
+        write-host "$cores of $maxcores cores in use."
+        if ($maxcores - $cores -lt 8)
+        {
+            Write-Host "$Region has insufficient capacity."
+            $tried_regions.Add($Region)
+            $locations = $locations | Where-Object {$_.Location -notin $tried_regions}
+            if ($locations.length -gt 0)
+            {
+                $rand = (0..$($locations.Count - 1)) | Get-Random
+                $Region = $locations.Get($rand).Location
+            }
+            else {
+                Write-Host "Could not create a Databricks workspace."
+                Write-Host "Use the Azure portal to add one to the $resourceGroupName resource group."
+                $stop = 1
+            }
+        }
+        else {
+            $dbworkspace = "databricks$suffix$attempt"
+            New-AzDatabricksWorkspace -Name $dbworkspace -ResourceGroupName $resourceGroupName -Location $Region -Sku standard -ErrorAction Stop | Out-Null
+            $stop = 1
+        }
     }
     catch {
       $stop = 0
