@@ -14,9 +14,13 @@ This lab will take approximately **90** minutes to complete.
 
 You'll need an [Azure subscription](https://azure.microsoft.com/free) in which you have administrative-level access.
 
-## Provision Azure resources
+## Explore Azure Synapse Analytics
 
-An Azure Synapse Analytics *workspace* provides a central point for managing data, code, and compute resources for Azure Synapse Analytics. Similarly, an Azure Databricks workspace provides a central point for managing Databricks clusters , data, and resources on Azure. You can provision a workspace of either type by using the interactive interface in the Azure portal, or you can deploy a workspace and resources within it by using a script or template. In most production scenarios, it's best to automate provisioning with scripts and templates so that you can incorporate resource deployment into a repeatable development and operations (*DevOps*) process.
+An Azure Synapse Analytics workspace provides a central point for managing data, code, and compute resources for Azure Synapse Analytics.
+
+### Provision an Azure Synapse Analytics workspace
+
+You can provision an Azure Synapse workspace by using the interactive interface in the Azure portal, or you can deploy a workspace and resources within it by using a script or template. In most production scenarios, it's best to automate provisioning with scripts and templates so that you can incorporate resource deployment into a repeatable development and operations (*DevOps*) process.
 
 In this exercise, you'll use a combination of a PowerShell script and an ARM template to provision the resources you need.
 
@@ -32,15 +36,15 @@ In this exercise, you'll use a combination of a PowerShell script and an ARM tem
 4. In the PowerShell pane, enter the following commands to clone this repo:
 
     ```
-    rm -r dp-000 -f
-    git clone https://github.com/GraemeMalcolm/dp-203-interim dp-000
+    rm -r dp-203 -f
+    git clone https://github.com/GraemeMalcolm/dp-203-interim dp-203
     ```
 
-5. After the repo has been cloned, enter the following commands to change to the folder for this lab and run the **setup.ps1** script it contains:
+5. After the repo has been cloned, enter the following commands to change to the folder for this lab and run the **setup-synapse.ps1** script it contains:
 
     ```
-    cd dp-000/Allfiles/Labs/01
-    ./setup.ps1
+    cd dp-203/Allfiles/Labs/01
+    ./setup-synapse.ps1
     ```
 
 6. If prompted, choose which subscription you want to use (this will only happen if you have access to multiple Azure subscriptions).
@@ -48,13 +52,14 @@ In this exercise, you'll use a combination of a PowerShell script and an ARM tem
 
     > **Note**: Be sure to remember this password!
 
-8. Wait for the script to complete - this typically takes around 20 minutes, but in some cases may take longer. While you are waiting, review the [What is Azure Synapse Analytics?](https://docs.microsoft.com/azure/synapse-analytics/overview-what-is) article in the Azure Synapse Analytics documentation.
+8. Wait for the script to complete - this typically takes around 15 minutes, but in some cases may take longer. While you are waiting, review the [What is Azure Synapse Analytics?](https://docs.microsoft.com/azure/synapse-analytics/overview-what-is) article in the Azure Synapse Analytics documentation.
+9. When the script has finished, close the cloud shell pane.
 
-## Explore Synapse Studio
+### Explore Synapse Studio
 
 *Synapse Studio* is a web-based portal in which you can manage and work with the resources in your Azure Synapse Analytics workspace.
 
-1. When the setup script has finished running, in the Azure portal, go to the **dp000-*xxxxxxx*** resource group that it created, and notice that this resource group contains your Synapse workspace, a Storage account for your data lake, an Apache Spark pool, a Data Explorer pool, and a Dedicated SQL pool.
+1. In the Azure portal, go to the **dp203-*xxxxxxx*** resource group that was create by the script, and notice that this resource group contains your Synapse workspace, a Storage account for your data lake, an Apache Spark pool, and a Dedicated SQL pool.
 2. Select your Synapse workspace, and in its **Overview** page, in the **Open Synapse Studio** card, select **Open** to open Synapse Studio in a new browser tab. Synapse Studio is a web-based interface that you can use to work with your Synapse Analytics workspace.
 3. On the left side of Synapse Studio, use the **&rsaquo;&rsaquo;** icon to expand the menu - this reveals the different pages within Synapse Studio that you'll use to manage resources and perform data analytics tasks, as shown here:
 
@@ -73,14 +78,10 @@ In this exercise, you'll use a combination of a PowerShell script and an ARM tem
         - **sql*xxxxxxx***: A *dedicated* SQL pool that hosts a relational data warehouse database.
     - **Apache Spark pools**:
         - **spark*xxxxxxx***: that you can use on-demand to explore or process data in a data lake by using programming languages like Scala or Python.
-    - **Data Explorer pools**:
-        - **adx*xxxxxxx***: A Data Explorer pool that you can use to analyze data by using Kusto Query Language (KQL).
 
-## Ingest data with a pipeline
+### Ingest data with a pipeline
 
 One of the key tasks you can perform with Azure Synapse Analytics is to define *pipelines* that transfer (and if necessary, transform) data from a wide range of sources into your workspace for analysis.
-
-### Use the Copy Data task to create a pipeline
 
 1. In Synapse Studio, on the **Home** page, select **Ingest** to open the **Copy Data** tool
 2. In the Copy Data tool, on the **Properties** step, ensure that **Built-in copy task** and **Run once now** are selected, and click **Next >**.
@@ -134,16 +135,13 @@ One of the key tasks you can perform with Azure Synapse Analytics is to define *
 12. On the **Deployment** step, wait for the pipeline to be deployed and then click **Finish**.
 13. In Synapse Studio, select the **Monitor** page, and in the **Pipeline runs** tab, wait for the **Copy products** pipeline to complete with a status of **Succeeded** (you can use the **&#8635; Refresh** button on the Pipeline runs page to refresh the status).
 14. View the **Integrate** page, and verify that it now contains a pipeline named **Copy products**.
-
-### View the ingested data
-
-1. On the **Data** page, select the **Linked** tab and expand the **Product Files** hierarchy until you see the **files** file storage for your Synapse workspace. Then select the file storage to verify that a folder named **product_data** containing a file named **products.csv** has been copied to this location, as shown here:
+15. On the **Data** page, select the **Linked** tab and expand the **Product Files** hierarchy until you see the **files** file storage for your Synapse workspace. Then select the file storage to verify that a folder named **product_data** containing a file named **products.csv** has been copied to this location, as shown here:
 
     ![Image showing Synapse Studio expanded Azure Data Lake Storage hierarchy with the file storage for your Synapse workspace](./images/product_files.png)
 
-2. Right-click the **products.csv** data file and select **Preview** to view the ingested data. Then close the preview.
+16. Right-click the **products.csv** data file and select **Preview** to view the ingested data. Then close the preview.
 
-## Use a serverless SQL pool to analyze data
+### Use a serverless SQL pool to analyze data
 
 Now that you've ingested some data into your workspace, you can use Synapse Analytics to query and analyze it. One of the most common ways to query data is to use SQL, and in Synapse Analytics you can use a serverless SQL pool to run SQL code against data in a data lake.
 
@@ -241,7 +239,7 @@ Now that you've ingested some data into your workspace, you can use Synapse Anal
 
     ![Image showing the product count chart view](./images/column-chart.png)
 
-## Use a Spark pool to analyze data
+### Use a Spark pool to analyze data
 
 While SQL is a common language for querying structured datasets, many data analysts find languages like Python useful to explore and prepare data for analysis. In Azure Synapse Analytics, you can run Python (and other) code in a *Spark pool*; which uses a distributed data processing engine based on Apache Spark.
 
@@ -313,7 +311,7 @@ While SQL is a common language for querying structured datasets, many data analy
 
 13. Close the notebook pane and stop the Spark session when prompted. Then view the **Develop** page to verify that the notebook has been saved.
 
-## Use a dedicated SQL pool to query a data warehouse
+### Use a dedicated SQL pool to query a data warehouse
 
 So far you've seen some techniques for exploring and processing file-based data in a data lake. In many cases, an enterprise analytics solution uses a data lake to store and prepare unstructured data that can then be loaded into a relational data warehouse to support business intelligence (BI) workloads. In Azure Synapse Analytics, these data warehouses can be implemented in a dedicated SQL pool.
 
@@ -341,18 +339,65 @@ So far you've seen some techniques for exploring and processing file-based data 
 
 10. On the **Manage** page, select the **sql*xxxxxxx*** dedicated SQL pool row and use its &#10074;&#10074; icon to pause it.
 
-## Explore Azure Databricks
+### Delete Azure Synapse Analytics resources
 
-To-Do.....
-
-## Delete Azure resources
-
-If you've finished exploring Azure Synapse Analytics, you should delete the resources you've created to avoid unnecessary Azure costs.
+Now you've finished exploring Azure Synapse Analytics, you must delete the resources you've created to avoid unnecessary Azure costs and free up capacity in your subscription.
 
 1. Close the Synapse Studio browser tab and return to the Azure portal.
 2. On the Azure portal, on the **Home** page, select **Resource groups**.
-3. Select the **dp000-*xxxxxxx*** resource group (not the managed resource group), and verify that it contains the Synapse workspace, storage account, SQL pool, and Spark pool for your Azure Synapse Analytics workspace; and your Azure Databricks workspace.
+3. Select the **dp203-*xxxxxxx*** resource group (not the managed resource group), and verify that it contains the Synapse workspace, storage account, SQL pool, and Spark pool for your Azure Synapse Analytics workspace.
 4. At the top of the **Overview** page for your resource group, select **Delete resource group**.
-5. Enter the **dp000-*xxxxxxx*** resource group name to confirm you want to delete it, and select **Delete**.
+5. Enter the **dp203-*xxxxxxx*** resource group name to confirm you want to delete it, and select **Delete**.
+
+    After a few minutes, your resource group and the managed workspace resource groups associated with it will be deleted.
+
+    > **Important**: Ensure your resource group has been deleted before proceeding to the next exercise.
+
+## Explore Azure Databricks
+
+Azure Databricks is a Microsoft Azure-based version of the popular open-source Databricks platform.
+Similarly to Azure Synapse Analytics, an Azure Databricks *workspace* provides a central point for managing Databricks clusters, data, and resources on Azure.
+
+### Provision an Azure Databricks workspace
+
+In this exercise, you'll use a script to provision a new Azure Databricks workspace.
+
+1. In the Azure portal, open the cloud shell pane and ensure you are using a **PowerShell** environment.
+2. Enter the following commands to change to the folder for this lab and run the **setup-databricks.ps1** script it contains:
+
+    ```
+    cd dp-203/Allfiles/Labs/01
+    ./setup-databricks.ps1
+    ```
+
+    > **Tip**: If for any reason you need to re-clone the repo containing the files for this lab, run the following command:
+    > 
+    > ```
+    > rm -r dp-203 -f
+    > git clone https://github.com/GraemeMalcolm/dp-203-interim dp-203
+    > ```
+    >
+
+3. If prompted, choose which subscription you want to use (this will only happen if you have access to multiple Azure subscriptions).
+4. Wait for the script to complete - this typically takes around 5 minutes, but in some cases may take longer. While you are waiting, review the [What is Azure Databricks?](https://docs.microsoft.com/azure/databricks/scenarios/what-is-azure-databricks) article in the Azure Databricks documentation.
+5. When the script has finished, close the cloud shell pane.
+
+### Create a cluster
+
+Azure Databricks is a distributed processing platform that uses *clusters* to process data in parallel on multiple nodes. Each cluster consists of a driver node to coordinate the work, and worker nodes to perform processing tasks.
+
+> **Note**: In this exercise, you'll create a *single-node* cluster to minimize the compute resources used in the lab environment (in which resources may be constrained). In a production environment, you'd typically create a cluster with multiple worker nodes.
+
+
+
+### Delete Azure Databricks resources
+
+Now you've finished exploring Azure Databricks, you must delete the resources you've created to avoid unnecessary Azure costs and free up capacity in your subscription.
+
+1. Close the Synapse Studio browser tab and return to the Azure portal.
+2. On the Azure portal, on the **Home** page, select **Resource groups**.
+3. Select the **dp203-*xxxxxxx*** resource group (not the managed resource group), and verify that it contains your Azure Databricks workspace.
+4. At the top of the **Overview** page for your resource group, select **Delete resource group**.
+5. Enter the **dp203-*xxxxxxx*** resource group name to confirm you want to delete it, and select **Delete**.
 
     After a few minutes, your resource group and the managed workspace resource groups associated with it will be deleted.

@@ -68,7 +68,7 @@ while ($complexPassword -ne 1)
 
 # Register resource providers
 Write-Host "Registering resource providers...";
-$provider_list = "Microsoft.Synapse", "Microsoft.Sql", "Microsoft.Storage", "Microsoft.Compute", "Microsoft.Databricks"
+$provider_list = "Microsoft.Synapse", "Microsoft.Sql", "Microsoft.Storage", "Microsoft.Compute"
 foreach ($provider in $provider_list){
     $result = Register-AzResourceProvider -ProviderNamespace $provider
     $status = $result.RegistrationState
@@ -78,7 +78,7 @@ foreach ($provider in $provider_list){
 # Generate unique random suffix
 [string]$suffix =  -join ((48..57) + (97..122) | Get-Random -Count 7 | % {[char]$_})
 Write-Host "Your randomly-generated suffix for Azure resources is $suffix"
-$resourceGroupName = "dp000-$suffix"
+$resourceGroupName = "dp203-$suffix"
 
 # Choose a random region
 Write-Host "Finding an available region. This may take several minutes...";
@@ -174,69 +174,5 @@ Get-ChildItem "./data/*.txt" -File | Foreach-Object {
 # Pause SQL Pool
 write-host "Pausing the $sqlDatabaseName SQL Pool..."
 Suspend-AzSynapseSqlPool -WorkspaceName $synapseWorkspace -Name $sqlDatabaseName -AsJob
-
-# Get a list of locations for Azure Databricks (exclude region where Synapse is provisioned)
-Write-Host "Creating Azure Databricks workspace in $resourceGroupName resource group..."
-$locations = Get-AzLocation | Where-Object {
-    $_.Providers -contains "Microsoft.Databricks" -and
-    $_.Providers -contains "Microsoft.Compute" -and
-    $_.Location -notmatch $Region
-}
-
-# Try to create an Azure Databricks workspace in one of the remaining locations
-$max_index = $locations.Count - 1
-$rand = (0..$max_index) | Get-Random
-$Region = $locations.Get($rand).Location
-$stop = 0
-$attempt = 0
-$tried_regions = New-Object Collections.Generic.List[string]
-$tried_regions.Add($Region)
-while ($stop -ne 1){
-    try {
-        write-host "Trying $Region..."
-        $attempt = $attempt + 1
-        $quota = @(Get-AzVMUsage -Location $Region).where{$_.name.LocalizedValue -match 'Standard DSv2 Family vCPUs'}
-        $cores =  $quota.currentvalue
-        $maxcores = $quota.limit
-        write-host "$cores of $maxcores cores in use."
-        if ($maxcores - $cores -lt 8)
-        {
-            Write-Host "$Region has insufficient capacity."
-            $tried_regions.Add($Region)
-            $locations = $locations | Where-Object {$_.Location -notin $tried_regions}
-            if ($locations.length -gt 0)
-            {
-                $rand = (0..$($locations.Count - 1)) | Get-Random
-                $Region = $locations.Get($rand).Location
-            }
-            else {
-                Write-Host "Could not create a Databricks workspace."
-                Write-Host "Use the Azure portal to add one to the $resourceGroupName resource group."
-                $stop = 1
-            }
-        }
-        else {
-            $dbworkspace = "databricks$suffix$attempt"
-            New-AzDatabricksWorkspace -Name $dbworkspace -ResourceGroupName $resourceGroupName -Location $Region -Sku standard -ErrorAction Stop | Out-Null
-            $stop = 1
-        }
-    }
-    catch {
-      $stop = 0
-      Remove-AzDatabricksWorkspace -Name $dbworkspace -ResourceGroupName $resourceGroupName -AsJob | Out-Null
-      $tried_regions.Add($Region)
-      $locations = $locations | Where-Object {$_.Location -notin $tried_regions}
-      if ($locations.length -gt 0)
-      {
-        $rand = (0..$($locations.Count - 1)) | Get-Random
-        $Region = $locations.Get($rand).Location
-      }
-      else {
-          Write-Host "Could not create a Databricks workspace."
-          Write-Host "Use the Azure portal to add one to the $resourceGroupName resource group."
-          $stop = 1
-      }
-    }
-}
 
 write-host "Script completed at $(Get-Date)"
