@@ -175,17 +175,26 @@ Get-ChildItem "./data/*.txt" -File | Foreach-Object {
 write-host "Pausing the $sqlDatabaseName SQL Pool..."
 Suspend-AzSynapseSqlPool -WorkspaceName $synapseWorkspace -Name $sqlDatabaseName -AsJob
 
-# Create Azure Databricks workspace
+# Get a list of locations for Azure Databricks (exclude region where Synapse is provisioned)
 Write-Host "Creating Azure Databricks workspace in $resourceGroupName resource group..."
-$avoid_regions = "australiaeast", "northeurope", "uksouth", $Region
 $locations = Get-AzLocation | Where-Object {
     $_.Providers -contains "Microsoft.Databricks" -and
-    $_.Location -NotIn $avoid_regions
+    $_.Location -notmatch $Region
 }
+
+# Remove locations with insufficient quota
+foreach ($location in $locations){
+    $quota = @(Get-AzVMUsage -Location $location).where{$_.name.LocalizedValue -match 'Standard DSv2 Family vCPUs'}
+    if ($quota.limit - $quota.currentvalue -lt 8)
+    {
+        $locations.Remove($location)
+    }
+}
+
+# Try to create an Azure Databricks workspace in one of the remaining locations
 $max_index = $locations.Count - 1
 $rand = (0..$max_index) | Get-Random
 $Region = $locations.Get($rand).Location
-
 $stop = 0
 $attempt = 0
 $tried_regions = New-Object Collections.Generic.List[string]
